@@ -9,7 +9,7 @@
     <style>
         body {
             font-family: "Inter", sans-serif;
-            background-color: #f0f4f8; /* Light blue-gray background */
+            background-color: #fff0f5; /* Lavenderblush - とても淡いピンクの背景 */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -18,58 +18,65 @@
             box-sizing: border-box;
         }
         .container {
-            background-color: #ffffff; /* White container background */
+            background-color: #ffffff; /* 白いコンテナ背景 */
             padding: 30px;
-            border-radius: 15px; /* More rounded corners */
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            border-radius: 15px; /* 丸みを帯びた角 */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* 柔らかい影 */
             max-width: 800px;
             width: 100%;
             text-align: center;
         }
         /* 穴抜き単語のコンテナ（ボタンとして機能する部分） */
         .blank-word-container {
-            background-color: #3b82f6; /* Blue button */
-            color: white;
-            padding: 4px 10px;
+            /* 常に元のテキストと同じフォントサイズを使用 */
+            font-size: 1.125rem; /* 元のテキストのフォントサイズに合わせる */
+            font-family: "Inter", sans-serif; /* 一貫したフォントファミリーを確保 */
+
+            background-color: #ff69b4; /* ホットピンクのボタン */
+            color: white; /* 隠れた状態のテキスト色 */
+            padding: 4px 10px; /* 両方の状態で一貫したパディング */
             border-radius: 8px;
             border: none;
             cursor: pointer;
-            font-size: 0.75rem; /* Smaller font for button */
-            margin: 0 4px; /* Maintain spacing */
-            transition: background-color 0.3s ease, color 0.3s ease, padding 0.3s ease, min-width 0.3s ease, border 0.3s ease; /* Smooth transition for all properties */
-            white-space: nowrap; /* Prevent button text from wrapping */
-            display: inline-flex; /* Use flex to center text vertically */
-            align-items: center; /* Center text vertically */
-            justify-content: center; /* Center text horizontally */
-            min-width: 60px; /* Consistent width for button state */
-            text-align: center; /* Ensure text is centered */
-            vertical-align: middle; /* Align with surrounding text */
-            box-sizing: border-box; /* Include padding in width/height */
-            text-decoration: none; /* Remove underline for button-like appearance */
+            margin: 0 4px; /* 間隔を維持 */
+            transition: background-color 0.3s ease, color 0.3s ease; /* スムーズなトランジション */
+            white-space: nowrap; /* ボタンテキストの折り返しを防ぐ */
+            display: inline-flex; /* テキストを垂直方向に中央揃えにするためにフレックスを使用 */
+            align-items: center; /* テキストを垂直方向に中央揃え */
+            justify-content: center; /* テキストを水平方向に中央揃え */
+            text-align: center; /* テキストが中央揃えであることを確認 */
+            vertical-align: middle; /* 周囲のテキストと揃える */
+            box-sizing: border-box; /* 幅/高さにパディングを含める */
+            text-decoration: none; /* ボタンのような外観のために下線を削除 */
+            /* widthはJavaScriptで設定されるため、ここではmin-widthを設定しない */
         }
         .blank-word-container:hover {
-            background-color: #2563eb; /* Darker blue on hover */
+            background-color: #e0529d; /* ホットピンクより少し濃い色 */
         }
+
+        /* 隠された単語のテキスト（アンダースコア） */
+        .blank-word-container[data-state="hidden"] .blank-text {
+            color: transparent; /* アンダースコアを非表示にする */
+            user-select: none; /* 隠れたテキストの選択を防ぐ */
+        }
+
         /* 単語が表示されたときのスタイル */
         .blank-word-container[data-state="shown"] {
-            background-color: #e2e8f0; /* Light gray background when shown */
-            color: #334155; /* Normal text color */
-            padding: 0 4px; /* Small padding for revealed word */
-            min-width: auto; /* Remove min-width */
-            border: none;
-            cursor: default; /* Change cursor back to default */
-            font-size: 1.125rem; /* Match original text font size */
+            background-color: #ffe4e1; /* Mistyrose - とても淡い、暖かいピンクの背景 */
+            color: #334155; /* 通常のテキスト色 */
+            cursor: default; /* カーソルをデフォルトに戻す */
+            /* padding, font-size, width はhidden状態と同じ値を維持し、レイアウトシフトを防ぐ */
         }
 
         .original-text-display {
-            font-size: 1.125rem; /* Larger text */
-            line-height: 1.8; /* More space between lines */
+            font-size: 1.125rem; /* 大きめのテキスト */
+            line-height: 2.2; /* 行間隔を広げる */
             text-align: left;
             margin-top: 20px;
-            color: #334155; /* Darker text color */
+            color: #334155; /* 暗めのテキスト色 */
         }
         .generate-button {
-            background-color: #10b981; /* Green button */
+            background-color: #ff69b4; /* ホットピンクのボタン */
             color: white;
             padding: 12px 24px;
             border-radius: 10px;
@@ -80,7 +87,7 @@
             transition: background-color 0.3s ease;
         }
         .generate-button:hover {
-            background-color: #059669; /* Darker green on hover */
+            background-color: #e0529d; /* ホットピンクより少し濃い色 */
         }
     </style>
 </head>
@@ -98,6 +105,27 @@
     <script>
         // Original English text
         const originalEnglishText = "It is important for consumers to regularly begin asking themselves this question: What is the connection between your purchases and the world? Thinking about the answer to this before you buy any product is a step toward creating a more sustainable world.";
+
+        /**
+         * 指定されたテキストが特定のフォントスタイルでレンダリングされたときの幅を測定します。
+         * @param {string} text - 測定するテキスト。
+         * @param {string} fontSize - フォントサイズ (例: '1.125rem')。
+         * @param {string} fontFamily - フォントファミリー (例: '"Inter", sans-serif')。
+         * @returns {number} テキストの幅 (px)。
+         */
+        function measureTextWidth(text, fontSize, fontFamily) {
+            const span = document.createElement('span');
+            span.style.visibility = 'hidden';
+            span.style.position = 'absolute';
+            span.style.whiteSpace = 'nowrap';
+            span.style.fontSize = fontSize;
+            span.style.fontFamily = fontFamily;
+            span.textContent = text;
+            document.body.appendChild(span);
+            const width = span.offsetWidth;
+            document.body.removeChild(span);
+            return width;
+        }
 
         // Function to generate fill-in-the-blanks questions
         function generateFillInTheBlanks() {
@@ -131,19 +159,29 @@
             let htmlContent = '';
             matches.forEach((word, index) => {
                 if (wordsToBlankIndices.has(index)) {
-                    // Blanked word (functions as a clickable button)
+                    // 穴抜き単語（クリック可能なボタンとして機能）
+                    // 単語の実際の幅を測定し、その幅を要素に直接設定
+                    const wordWidth = measureTextWidth(word, '1.125rem', '"Inter", sans-serif');
+                    // パディングも考慮した要素の合計幅を計算
+                    // padding-left: 10px, padding-right: 10px なので、20px を追加
+                    const totalElementWidth = wordWidth + (4 * 2); // padding-left/right がそれぞれ4pxなので合計8px
+                    // CSSのpadding: 4px 10px; を使用しているので、10px * 2 = 20px を加算
+                    const finalElementWidth = wordWidth + (10 * 2);
+
+
                     htmlContent += `
                         <span class="blank-word-container"
                               data-original-word="${word}"
                               data-state="hidden"
                               onclick="toggleWordVisibility(this)"
                               role="button"
-                              tabindex="0">
+                              tabindex="0"
+                              style="width: ${finalElementWidth}px;">
                             <span class="blank-text">${'_'.repeat(word.length)}</span>
                         </span>
                     `;
                 } else {
-                    // Display word or punctuation as is
+                    // そのまま表示する単語または句読点
                     htmlContent += `<span>${word}</span> `;
                 }
             });
@@ -163,27 +201,20 @@
                 element.dataset.state = 'shown';
 
                 // Apply styles for the shown word
-                element.style.backgroundColor = '#e2e8f0'; /* Light gray background */
-                element.style.color = '#334155'; /* Normal text color */
-                element.style.padding = '0 4px'; /* Small padding to look like normal text */
-                element.style.minWidth = 'auto'; /* Remove min-width */
-                element.style.border = 'none';
-                element.style.cursor = 'default'; /* Change cursor back to default */
-                element.style.fontSize = '1.125rem'; /* Match original text font size */
+                element.style.backgroundColor = '#ffe4e1'; /* Mistyrose - とても淡い、暖かいピンクの背景 */
+                element.style.color = '#334155'; /* 通常のテキスト色 */
+                element.style.cursor = 'default'; /* カーソルをデフォルトに戻す */
+                // width, padding, font-size はCSSと初期JS設定で固定されているため、ここでは変更しない
             } else {
                 // Hide the word and revert to "answer button" state
                 blankTextSpan.textContent = '_'.repeat(originalWord.length); // Show underscores
                 element.dataset.state = 'hidden';
 
                 // Apply styles for the button state
-                element.style.backgroundColor = '#3b82f6'; /* Blue button */
-                element.style.color = 'white';
-                element.style.padding = '4px 10px';
-                element.style.borderRadius = '8px';
-                element.style.border = 'none';
+                element.style.backgroundColor = '#ff69b4'; /* ホットピンクのボタン */
+                element.style.color = 'white'; /* 隠れた状態のテキスト色 */
                 element.style.cursor = 'pointer';
-                element.style.fontSize = '0.75rem';
-                element.style.minWidth = '60px'; /* Minimum width for button */
+                // width, padding, font-size はCSSと初期JS設定で固定されているため、ここでは変更しない
             }
         }
 
