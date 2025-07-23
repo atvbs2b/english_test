@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語音読テスト対策</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff; /* White container background */
+            padding: 30px;
+            border-radius: 15px; /* More rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        /* 穴抜き単語のコンテナ（ボタンとして機能する部分） */
+        .blank-word-container {
+            background-color: #3b82f6; /* Blue button */
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem; /* Smaller font for button */
+            margin: 0 4px; /* Maintain spacing */
+            transition: background-color 0.3s ease, color 0.3s ease, padding 0.3s ease, min-width 0.3s ease, border 0.3s ease; /* Smooth transition for all properties */
+            white-space: nowrap; /* Prevent button text from wrapping */
+            display: inline-flex; /* Use flex to center text vertically */
+            align-items: center; /* Center text vertically */
+            justify-content: center; /* Center text horizontally */
+            min-width: 60px; /* Consistent width for button state */
+            text-align: center; /* Ensure text is centered */
+            vertical-align: middle; /* Align with surrounding text */
+            box-sizing: border-box; /* Include padding in width/height */
+            text-decoration: none; /* Remove underline for button-like appearance */
+        }
+        .blank-word-container:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+        }
+        /* 単語が表示されたときのスタイル */
+        .blank-word-container[data-state="shown"] {
+            background-color: #e2e8f0; /* Light gray background when shown */
+            color: #334155; /* Normal text color */
+            padding: 0 4px; /* Small padding for revealed word */
+            min-width: auto; /* Remove min-width */
+            border: none;
+            cursor: default; /* Change cursor back to default */
+            font-size: 1.125rem; /* Match original text font size */
+        }
+
+        .original-text-display {
+            font-size: 1.125rem; /* Larger text */
+            line-height: 1.8; /* More space between lines */
+            text-align: left;
+            margin-top: 20px;
+            color: #334155; /* Darker text color */
+        }
+        .generate-button {
+            background-color: #10b981; /* Green button */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .generate-button:hover {
+            background-color: #059669; /* Darker green on hover */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">英語音読テスト対策</h1>
+        <button id="generateBlanksButton" class="generate-button">
+            穴埋め問題を生成
+        </button>
+        <div id="textContainer" class="original-text-display mt-8">
+            <!-- 穴埋めされたテキストがここに表示されます -->
+        </div>
+    </div>
+
+    <script>
+        // Original English text
+        const originalEnglishText = "It is important for consumers to regularly begin asking themselves this question: What is the connection between your purchases and the world? Thinking about the answer to this before you buy any product is a step toward creating a more sustainable world.";
+
+        // Function to generate fill-in-the-blanks questions
+        function generateFillInTheBlanks() {
+            const textContainer = document.getElementById('textContainer');
+            textContainer.innerHTML = ''; // Clear content
+
+            // Regular expression to extract words while preserving punctuation
+            // \b\w+\b matches words at word boundaries, |[.,!?;:] matches punctuation
+            const wordRegex = /(\b\w+\b|[.,!?;:])/g;
+            const matches = originalEnglishText.match(wordRegex);
+
+            if (!matches) {
+                textContainer.textContent = originalEnglishText;
+                return;
+            }
+
+            // Randomly select indices of words to be blanked out
+            const wordsToBlankIndices = new Set();
+            // Filter out non-word matches (punctuation) to count available words
+            const availableWords = matches.filter(word => /\b\w+\b/.test(word));
+            const numWordsToBlank = Math.min(10, availableWords.length); // Max 10 words, or available word count
+
+            while (wordsToBlankIndices.size < numWordsToBlank) {
+                const randomIndex = Math.floor(Math.random() * matches.length);
+                // Only target words (not punctuation)
+                if (/\b\w+\b/.test(matches[randomIndex])) {
+                    wordsToBlankIndices.add(randomIndex);
+                }
+            }
+
+            let htmlContent = '';
+            matches.forEach((word, index) => {
+                if (wordsToBlankIndices.has(index)) {
+                    // Blanked word (functions as a clickable button)
+                    htmlContent += `
+                        <span class="blank-word-container"
+                              data-original-word="${word}"
+                              data-state="hidden"
+                              onclick="toggleWordVisibility(this)"
+                              role="button"
+                              tabindex="0">
+                            <span class="blank-text">${'_'.repeat(word.length)}</span>
+                        </span>
+                    `;
+                } else {
+                    // Display word or punctuation as is
+                    htmlContent += `<span>${word}</span> `;
+                }
+            });
+
+            textContainer.innerHTML = htmlContent;
+        }
+
+        // Function to toggle word visibility
+        function toggleWordVisibility(element) {
+            const originalWord = element.dataset.originalWord;
+            let currentState = element.dataset.state;
+            const blankTextSpan = element.querySelector('.blank-text'); // Span for displaying text inside
+
+            if (currentState === 'hidden') {
+                // Switch to showing the word
+                blankTextSpan.textContent = originalWord;
+                element.dataset.state = 'shown';
+
+                // Apply styles for the shown word
+                element.style.backgroundColor = '#e2e8f0'; /* Light gray background */
+                element.style.color = '#334155'; /* Normal text color */
+                element.style.padding = '0 4px'; /* Small padding to look like normal text */
+                element.style.minWidth = 'auto'; /* Remove min-width */
+                element.style.border = 'none';
+                element.style.cursor = 'default'; /* Change cursor back to default */
+                element.style.fontSize = '1.125rem'; /* Match original text font size */
+            } else {
+                // Hide the word and revert to "answer button" state
+                blankTextSpan.textContent = '_'.repeat(originalWord.length); // Show underscores
+                element.dataset.state = 'hidden';
+
+                // Apply styles for the button state
+                element.style.backgroundColor = '#3b82f6'; /* Blue button */
+                element.style.color = 'white';
+                element.style.padding = '4px 10px';
+                element.style.borderRadius = '8px';
+                element.style.border = 'none';
+                element.style.cursor = 'pointer';
+                element.style.fontSize = '0.75rem';
+                element.style.minWidth = '60px'; /* Minimum width for button */
+            }
+        }
+
+        // Generate fill-in-the-blanks questions when the page loads
+        window.onload = function() {
+            generateFillInTheBlanks();
+            // Add event listener to the "Generate Blanks" button
+            document.getElementById('generateBlanksButton').addEventListener('click', generateFillInTheBlanks);
+        };
+    </script>
+</body>
+</html>
