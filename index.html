@@ -65,7 +65,7 @@
             background-color: #ffe4e1; /* Mistyrose - とても淡い、暖かいピンクの背景 */
             color: #334155; /* 通常のテキスト色 */
             cursor: default; /* カーソルをデフォルトに戻す */
-            /* padding, font-size, width はhidden状態と同じ値を維持し、レイアウトシフトを防ぐ */
+            /* padding, font-size, width はCSSと初期JS設定で固定されているため、レイアウトシフトを防ぐ */
         }
 
         .original-text-display {
@@ -89,14 +89,25 @@
         .generate-button:hover {
             background-color: #e0529d; /* ホットピンクより少し濃い色 */
         }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* ボタン間のスペース */
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">英語音読テスト対策</h1>
-        <button id="generateBlanksButton" class="generate-button">
-            穴埋め問題を生成
-        </button>
+        <div class="button-group">
+            <button id="generateBlanksButton" class="generate-button">
+                穴埋め問題を生成
+            </button>
+            <button id="generateMoreBlanksButton" class="generate-button">
+                もっと穴を増やす
+            </button>
+        </div>
         <div id="textContainer" class="original-text-display mt-8">
             <!-- 穴埋めされたテキストがここに表示されます -->
         </div>
@@ -127,13 +138,16 @@
             return width;
         }
 
-        // Function to generate fill-in-the-blanks questions
-        function generateFillInTheBlanks() {
+        /**
+         * 穴埋め問題を生成します。
+         * @param {number|null} wordsToKeep - 表示する単語の数を指定します。nullの場合、デフォルトのロジック（最大10個の穴）を使用します。
+         */
+        function generateFillInTheBlanks(wordsToKeep = null) {
             const textContainer = document.getElementById('textContainer');
-            textContainer.innerHTML = ''; // Clear content
+            textContainer.innerHTML = ''; // コンテンツをクリア
 
-            // Regular expression to extract words while preserving punctuation
-            // \b\w+\b matches words at word boundaries, |[.,!?;:] matches punctuation
+            // 単語と句読点を抽出するための正規表現
+            // \b\w+\b は単語境界にある単語にマッチし、|[.,!?;:] は句読点にマッチします
             const wordRegex = /(\b\w+\b|[.,!?;:])/g;
             const matches = originalEnglishText.match(wordRegex);
 
@@ -142,15 +156,25 @@
                 return;
             }
 
-            // Randomly select indices of words to be blanked out
-            const wordsToBlankIndices = new Set();
-            // Filter out non-word matches (punctuation) to count available words
+            // 実際の単語（句読点を除く）をフィルタリングして利用可能な単語の数をカウント
             const availableWords = matches.filter(word => /\b\w+\b/.test(word));
-            const numWordsToBlank = Math.min(10, availableWords.length); // Max 10 words, or available word count
+            const totalWords = availableWords.length;
 
+            let numWordsToBlank;
+            if (wordsToKeep !== null && typeof wordsToKeep === 'number') {
+                // 表示する単語の数が指定された場合、穴を開ける単語の数を計算
+                numWordsToBlank = Math.max(0, totalWords - wordsToKeep);
+                numWordsToBlank = Math.min(numWordsToBlank, totalWords); // 総単語数を超えないようにする
+            } else {
+                // デフォルトのロジック（最大10個の穴）
+                numWordsToBlank = Math.min(10, availableWords.length);
+            }
+
+            // 穴を開ける単語のインデックスをランダムに選択
+            const wordsToBlankIndices = new Set();
             while (wordsToBlankIndices.size < numWordsToBlank) {
                 const randomIndex = Math.floor(Math.random() * matches.length);
-                // Only target words (not punctuation)
+                // 単語のみを対象（句読点ではない）
                 if (/\b\w+\b/.test(matches[randomIndex])) {
                     wordsToBlankIndices.add(randomIndex);
                 }
@@ -162,12 +186,8 @@
                     // 穴抜き単語（クリック可能なボタンとして機能）
                     // 単語の実際の幅を測定し、その幅を要素に直接設定
                     const wordWidth = measureTextWidth(word, '1.125rem', '"Inter", sans-serif');
-                    // パディングも考慮した要素の合計幅を計算
-                    // padding-left: 10px, padding-right: 10px なので、20px を追加
-                    const totalElementWidth = wordWidth + (4 * 2); // padding-left/right がそれぞれ4pxなので合計8px
-                    // CSSのpadding: 4px 10px; を使用しているので、10px * 2 = 20px を加算
+                    // CSSのpadding: 4px 10px; を使用しているので、水平方向のパディング20pxを加算
                     const finalElementWidth = wordWidth + (10 * 2);
-
 
                     htmlContent += `
                         <span class="blank-word-container"
@@ -204,7 +224,6 @@
                 element.style.backgroundColor = '#ffe4e1'; /* Mistyrose - とても淡い、暖かいピンクの背景 */
                 element.style.color = '#334155'; /* 通常のテキスト色 */
                 element.style.cursor = 'default'; /* カーソルをデフォルトに戻す */
-                // width, padding, font-size はCSSと初期JS設定で固定されているため、ここでは変更しない
             } else {
                 // Hide the word and revert to "answer button" state
                 blankTextSpan.textContent = '_'.repeat(originalWord.length); // Show underscores
@@ -214,15 +233,19 @@
                 element.style.backgroundColor = '#ff69b4'; /* ホットピンクのボタン */
                 element.style.color = 'white'; /* 隠れた状態のテキスト色 */
                 element.style.cursor = 'pointer';
-                // width, padding, font-size はCSSと初期JS設定で固定されているため、ここでは変更しない
             }
         }
 
         // Generate fill-in-the-blanks questions when the page loads
         window.onload = function() {
+            // 初期表示はデフォルトの穴埋め問題
             generateFillInTheBlanks();
-            // Add event listener to the "Generate Blanks" button
-            document.getElementById('generateBlanksButton').addEventListener('click', generateFillInTheBlanks);
+
+            // 「穴埋め問題を生成」ボタンにイベントリスナーを追加
+            document.getElementById('generateBlanksButton').addEventListener('click', () => generateFillInTheBlanks());
+
+            // 「もっと穴を増やす」ボタンにイベントリスナーを追加
+            document.getElementById('generateMoreBlanksButton').addEventListener('click', () => generateFillInTheBlanks(8)); // 8単語を残す
         };
     </script>
 </body>
